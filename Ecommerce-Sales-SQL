@@ -1,0 +1,323 @@
+
+DROP DATABASE IF EXISTS ecommerce_db;
+
+CREATE DATABASE ecommerce_db;
+
+USE ecommerce_db;
+
+/* CUSTOMERS TABLE */
+
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(100),
+    city VARCHAR(50),
+    state VARCHAR(50)
+);
+
+/*===========================================================
+PRODUCTS TABLE
+============================================================*/
+
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    product_name VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10,2)
+);
+
+/*===========================================================
+ORDERS TABLE
+============================================================*/
+
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY,
+    customer_id INT,
+    product_id INT,
+    quantity INT,
+    order_date DATE,
+
+    FOREIGN KEY(customer_id)
+    REFERENCES customers(customer_id),
+
+    FOREIGN KEY(product_id)
+    REFERENCES products(product_id)
+);
+
+/*===========================================================
+INSERT CUSTOMERS
+============================================================*/
+
+INSERT INTO customers VALUES
+(1,'Rahul Sharma','Delhi','Delhi'),
+(2,'Amit Kumar','Mumbai','Maharashtra'),
+(3,'Sneha Roy','Kolkata','West Bengal'),
+(4,'Rohan Das','Guwahati','Assam'),
+(5,'Priya Singh','Lucknow','Uttar Pradesh'),
+(6,'Ankit Verma','Patna','Bihar'),
+(7,'Neha Kapoor','Chandigarh','Punjab'),
+(8,'Karan Mehta','Jaipur','Rajasthan');
+
+/*===========================================================
+INSERT PRODUCTS
+============================================================*/
+
+INSERT INTO products VALUES
+(101,'Laptop','Electronics',65000),
+(102,'Smartphone','Electronics',30000),
+(103,'Keyboard','Accessories',1800),
+(104,'Mouse','Accessories',900),
+(105,'Monitor','Electronics',15000),
+(106,'Printer','Office',12000),
+(107,'Power Bank','Accessories',1500),
+(108,'Headphones','Accessories',2500);
+
+/*===========================================================
+INSERT ORDERS
+============================================================*/
+
+INSERT INTO orders VALUES
+(1001,1,101,1,'2024-01-10'),
+(1002,2,102,2,'2024-01-15'),
+(1003,3,103,3,'2024-01-20'),
+(1004,4,104,5,'2024-02-05'),
+(1005,5,105,1,'2024-02-10'),
+(1006,6,106,2,'2024-03-01'),
+(1007,7,107,4,'2024-03-18'),
+(1008,8,108,2,'2024-04-04'),
+(1009,1,102,1,'2024-04-12'),
+(1010,2,105,1,'2024-05-10'),
+(1011,3,108,3,'2024-05-21'),
+(1012,5,101,1,'2024-06-08'),
+(1013,6,103,5,'2024-06-25'),
+(1014,7,104,4,'2024-07-11'),
+(1015,8,107,6,'2024-07-30');
+
+/*===========================================================
+DISPLAY TABLES
+============================================================*/
+
+SELECT * FROM customers;
+
+SELECT * FROM products;
+
+SELECT * FROM orders;
+
+/*===========================================================
+TOTAL SALES
+============================================================*/
+
+SELECT
+SUM(p.price * o.quantity) AS Total_Revenue
+FROM orders o
+JOIN products p
+ON o.product_id = p.product_id;
+
+/*===========================================================
+TOTAL ORDERS
+============================================================*/
+
+SELECT COUNT(*) AS Total_Orders
+FROM orders;
+
+/*===========================================================
+TOP SELLING PRODUCTS
+============================================================*/
+
+SELECT
+p.product_name,
+SUM(o.quantity) AS Units_Sold
+FROM orders o
+JOIN products p
+ON o.product_id = p.product_id
+GROUP BY p.product_name
+ORDER BY Units_Sold DESC;
+
+/*===========================================================
+TOP REVENUE GENERATING PRODUCTS
+============================================================*/
+
+SELECT
+p.product_name,
+SUM(o.quantity*p.price) AS Revenue
+FROM orders o
+JOIN products p
+ON o.product_id=p.product_id
+GROUP BY p.product_name
+ORDER BY Revenue DESC;
+
+/*===========================================================
+CUSTOMER SPENDING
+============================================================*/
+
+SELECT
+c.customer_name,
+SUM(p.price*o.quantity) AS Amount_Spent
+FROM customers c
+JOIN orders o
+ON c.customer_id=o.customer_id
+JOIN products p
+ON p.product_id=o.product_id
+GROUP BY c.customer_name
+ORDER BY Amount_Spent DESC;
+
+/*===========================================================
+MONTHLY SALES
+============================================================*/
+
+SELECT
+
+MONTH(order_date) AS Month,
+
+SUM(price*quantity) AS Revenue
+
+FROM orders
+
+JOIN products
+
+ON orders.product_id=products.product_id
+
+GROUP BY MONTH(order_date)
+
+ORDER BY Month;
+
+/*===========================================================
+CATEGORY SALES
+============================================================*/
+
+SELECT
+
+category,
+
+SUM(price*quantity) Revenue
+
+FROM products
+
+JOIN orders
+
+ON products.product_id=orders.product_id
+
+GROUP BY category;
+
+/*===========================================================
+AVERAGE ORDER VALUE
+============================================================*/
+
+SELECT
+
+AVG(price*quantity) AS Average_Order_Value
+
+FROM products
+
+JOIN orders
+
+ON products.product_id=orders.product_id;
+
+/*===========================================================
+CUSTOMER RANKING
+============================================================*/
+
+SELECT
+
+customer_name,
+
+SUM(price*quantity) AS Sales,
+
+RANK() OVER(
+ORDER BY SUM(price*quantity) DESC
+) Customer_Rank
+
+FROM customers
+
+JOIN orders
+
+ON customers.customer_id=orders.customer_id
+
+JOIN products
+
+ON products.product_id=orders.product_id
+
+GROUP BY customer_name;
+
+/*===========================================================
+VIEW
+============================================================*/
+
+CREATE VIEW Sales_Report AS
+
+SELECT
+
+customer_name,
+
+SUM(price*quantity) AS Revenue
+
+FROM customers
+
+JOIN orders
+
+ON customers.customer_id=orders.customer_id
+
+JOIN products
+
+ON products.product_id=orders.product_id
+
+GROUP BY customer_name;
+
+/*===========================================================
+DISPLAY VIEW
+============================================================*/
+
+SELECT * FROM Sales_Report;
+
+/*===========================================================
+TOP 3 CUSTOMERS
+============================================================*/
+
+SELECT *
+
+FROM Sales_Report
+
+ORDER BY Revenue DESC
+
+LIMIT 3;
+
+/*===========================================================
+PRODUCTS ABOVE AVERAGE PRICE
+============================================================*/
+
+SELECT *
+
+FROM products
+
+WHERE price >
+(
+SELECT AVG(price)
+FROM products
+);
+
+/*===========================================================
+TOTAL REVENUE BY STATE
+============================================================*/
+
+SELECT
+
+state,
+
+SUM(price*quantity) Revenue
+
+FROM customers
+
+JOIN orders
+
+ON customers.customer_id=orders.customer_id
+
+JOIN products
+
+ON products.product_id=orders.product_id
+
+GROUP BY state
+
+ORDER BY Revenue DESC;
+
+/*===========================================================
+END OF PROJECT
+============================================================*/
